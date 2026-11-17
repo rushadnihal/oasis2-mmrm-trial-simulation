@@ -29,6 +29,7 @@ This repository applies trial-style longitudinal methods to OASIS-2, an observat
 | `R/05_secondary_and_contrast.R` | Secondary endpoints (MMSE, CDR progression) and the sex demonstration contrast (SAP 9.6, 9.7) |
 | `R/06_missing_data.R` | Missing-data sensitivity (SAP 9.8): multiple imputation under MAR and delta adjustment |
 | `R/07a_export_crosscheck_input.R`, `sas/mmrm_crosscheck.sas`, `R/07b_sas_crosscheck.R` | SAS/R cross-check (SAP 10) on synthetic data: export, PROC MIXED program, comparison. Report in `sas/crosscheck/crosscheck_report.md` |
+| `R/sim/sim_functions.R`, `R/08_simulation_pilot.R` | Part B simulation: data-generating mechanism from rounded Part A estimates, dropout mechanisms, MMRM and reference-based MI, performance measures; pilot run and timing |
 | `R/utils_mmrm.R` | Shared helpers: MMRM fit with the pre-specified fallback, least-squares means, tables |
 | `R/synthetic/make_synthetic_oasis2.R` | Generates a synthetic dataset from hand-chosen parameters, so the pipeline runs without the real data |
 | `Makefile`, `.github/workflows/ci.yml` | `make synth-ci` runs the pipeline on synthetic data; CI does the same on every push |

@@ -15,11 +15,13 @@ jobs:
           r-version: release
           use-public-rspm: true
       - name: Install R packages
-        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "mice"))'
+        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "mice", "rbmi"))'
       - name: No participant data in tracked files
         run: make check-data
       - name: Run the pipeline on synthetic data
         run: make synth-ci
+      - name: Simulation smoke test
+        run: make sim-smoke
       - name: Print synthetic cross-check input
         run: |
           echo "BEGIN_CROSSCHECK_INPUT"
