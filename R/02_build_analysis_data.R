@@ -2,10 +2,16 @@
 # 02_build_analysis_data.R
 #
 # Purpose : Build the analysis datasets defined in the SAP (Sections 4, 5, 8)
-#           and report the counts and baseline quantities the SAP needs before
-#           it is frozen: final population sizes, visit timing in the primary
-#           analysis population (PAP), the skipped-visit timing check, baseline
-#           characteristics, and the baseline SD used to check the delta grid.
+#           and report the counts and baseline quantities the SAP relies on:
+#           population sizes, analysis-visit counts and timing in the primary
+#           analysis population (PAP), baseline characteristics, and the
+#           baseline SD used to check the delta grid.
+#           Analysis visits are assigned by time window (SAP Section 5):
+#           visit 2 = 1 to under 3 years from baseline (target 2 years),
+#           visit 3 = 3 to under 5 years (target 4 years). With more than one
+#           session in a window, the one closest to the target is used (the
+#           earlier one if tied). The file's Visit label is kept for the
+#           label-based sensitivity analysis.
 #           No outcome is summarised: change scores are derived and saved, but
 #           never printed, tabulated or modelled here.
 # Inputs  : longitudinaldemo.xlsx in the data directory (OASIS2_DATA_DIR if
@@ -54,6 +60,18 @@ d$id <- match(d$oasis_id, sort(unique(d$oasis_id)))   # internal integer id
 d$oasis_id <- NULL
 rownames(d) <- NULL
 
+# Analysis visit by time window (SAP Section 5) -----------------------------------
+d$years  <- d$delay / 365.25
+win_idx  <- findInterval(d$years, c(1, 3, 5))          # 0: <1, 1: [1,3), 2: [3,5), 3: >=5
+d$awin   <- ifelse(d$visit > 1, c(NA, 2L, 3L, NA)[win_idx + 1], NA)
+d$target <- c(NA, 2, 4)[match(d$awin, c(NA, 2L, 3L))]
+cand <- which(!is.na(d$awin) & !is.na(d$nwbv))
+cand <- cand[order(d$id[cand], d$awin[cand], abs(d$years[cand] - d$target[cand]), d$years[cand])]
+sel  <- cand[!duplicated(d[cand, c("id", "awin")])]
+d$mmrm_fl <- seq_len(nrow(d)) %in% sel                  # session used by the primary MMRM
+d$avisit  <- ifelse(d$visit == 1, 1L, ifelse(d$mmrm_fl, d$awin, NA))
+d$mmrm_lab_fl <- d$visit %in% 2:3 & !is.na(d$nwbv)     # session used by the label-based MMRM
+
 # Helpers ----------------------------------------------------------------------
 sc <- function(n) {
   n <- as.integer(n)
@@ -81,7 +99,8 @@ bl <- d[d$visit == 1, ]
 stopifnot("Every participant must have exactly one visit 1 row" =
             nrow(bl) == length(unique(d$id)) && !any(duplicated(bl$id)))
 
-has_nwbv_at <- function(k) bl$id %in% d$id[d$visit %in% k & !is.na(d$nwbv)]
+has_win <- function(k) bl$id %in% d$id[d$mmrm_fl & d$awin == k]
+has_lab <- function(k) bl$id %in% d$id[d$mmrm_lab_fl & d$visit == k]
 
 subj <- data.frame(
   id        = bl$id,
@@ -92,14 +111,15 @@ subj <- data.frame(
   base_nwbv = 100 * bl$nwbv,
   base_mmse = bl$mmse,
   base_cdr  = bl$cdr,
-  has_v2    = has_nwbv_at(2),
-  has_v3    = has_nwbv_at(3),
-  has_v4    = has_nwbv_at(4),
-  has_v5    = has_nwbv_at(5),
+  has_v2    = has_win(2),
+  has_v3    = has_win(3),
+  has_lab_v2 = has_lab(2),
+  has_lab_v3 = has_lab(3),
   stringsAsFactors = FALSE
 )
 subj$base_cdr_cat <- as.character(cut(subj$base_cdr, c(-Inf, 0, 0.5, Inf),
                                       labels = c("0", "0.5", "1 or above")))
+subj$base_cdr_cat2 <- ifelse(subj$base_cdr == 0, "0", "0.5 or above")
 subj$supp_fl <- !is.na(subj$base_nwbv) & (subj$has_v2 | subj$has_v3)
 subj$pap_fl  <- subj$supp_fl & subj$base_cdr == 0
 
@@ -119,8 +139,11 @@ subj$base_mmse_c <- subj$base_mmse - mean(subj$base_mmse[pap], na.rm = TRUE)
 m <- match(d$id, subj$id)
 long <- data.frame(
   id             = d$id,
-  avisit         = d$visit,
-  years_since_bl = d$delay / 365.25,
+  avisit         = d$avisit,
+  visit_label    = d$visit,
+  mmrm_fl        = d$mmrm_fl,
+  mmrm_lab_fl    = d$mmrm_lab_fl,
+  years_since_bl = d$years,
   age_visit      = d$age,
   nwbv_pct       = 100 * d$nwbv,
   chg_nwbv       = 100 * d$nwbv - subj$base_nwbv[m],
@@ -129,11 +152,10 @@ long <- data.frame(
   cdr            = d$cdr,
   stringsAsFactors = FALSE
 )
-keep <- c("sex", "educ", "age_bl", "base_nwbv", "base_mmse", "base_cdr", "base_cdr_cat",
+keep <- c("sex", "educ", "age_bl", "base_nwbv", "base_mmse", "base_cdr", "base_cdr_cat2",
           "age_bl_c", "educ_c", "base_nwbv_c", "base_mmse_c", "pap_fl", "supp_fl")
 long <- cbind(long, subj[m, keep])
 rownames(long) <- NULL
-long$mmrm_fl <- long$avisit %in% 2:3      # rows used by the MMRM
 
 saveRDS(subj, file.path(derived_dir, "analysis_subj.rds"))
 saveRDS(long, file.path(derived_dir, "analysis_long.rds"))
@@ -145,50 +167,48 @@ n_pap  <- sum(subj$pap_fl)
 n_supp <- sum(subj$supp_fl)
 flow_df <- data.frame(
   Step = c("All participants",
-           "Baseline nWBV and nWBV at visit 2 or 3 (supportive population)",
-           "Excluded from supportive population (no nWBV at visit 2 or 3)",
+           "Baseline nWBV and nWBV at analysis visit 2 or 3 (supportive population)",
+           "Excluded from supportive population (no session in either window)",
            "CDR 0 at visit 1",
-           "CDR 0 at visit 1, baseline nWBV and nWBV at visit 2 or 3 (PAP)",
+           "CDR 0 at visit 1, baseline nWBV and nWBV at analysis visit 2 or 3 (PAP)",
            "CDR 0 at visit 1 but excluded from PAP"),
   Participants = sc(c(n_all, n_supp, n_all - n_supp, n_cdr0, n_pap, n_cdr0 - n_pap)),
   stringsAsFactors = FALSE
 )
 
-# Report: PAP by visit and pattern -----------------------------------------------
+# Report: PAP by analysis visit and pattern --------------------------------------
 ps <- subj[pap, ]
+lp <- long[long$pap_fl, ]
+n_pct <- function(n, den) if (n < 5) sc(n) else sprintf("%d (%.0f%%)", n, 100 * n / den)
 visit_df <- data.frame(
-  Visit = 2:5,
-  `Used in` = c("MMRM and continuous-time", "MMRM and continuous-time",
-                "continuous-time only", "continuous-time only"),
-  `PAP participants with nWBV` = sc(c(sum(ps$has_v2), sum(ps$has_v3),
-                                      sum(ps$has_v4), sum(ps$has_v5))),
-  `Percent of PAP` = sprintf("%.0f%%", 100 * c(mean(ps$has_v2), mean(ps$has_v3),
-                                               mean(ps$has_v4), mean(ps$has_v5))),
+  `Analysis visit` = c("2 (1 to under 3 years)", "3 (3 to under 5 years)"),
+  `Window scheme (primary)` = c(n_pct(sum(ps$has_v2), n_pap), n_pct(sum(ps$has_v3), n_pap)),
+  `Label scheme (sensitivity)` = c(n_pct(sum(ps$has_lab_v2), n_pap),
+                                   n_pct(sum(ps$has_lab_v3), n_pap)),
   check.names = FALSE, stringsAsFactors = FALSE
 )
-visit_df$`Percent of PAP`[c(sum(ps$has_v2), sum(ps$has_v3),
-                            sum(ps$has_v4), sum(ps$has_v5)) < 5] <- "-"
 pattern_df <- data.frame(
   Pattern = c("Visit 2 and visit 3", "Visit 2 only", "Visit 3 only"),
-  `PAP participants` = sc(c(sum(ps$has_v2 & ps$has_v3), sum(ps$has_v2 & !ps$has_v3),
-                            sum(!ps$has_v2 & ps$has_v3))),
+  `PAP participants (window scheme)` = sc(c(sum(ps$has_v2 & ps$has_v3),
+                                            sum(ps$has_v2 & !ps$has_v3),
+                                            sum(!ps$has_v2 & ps$has_v3))),
+  check.names = FALSE, stringsAsFactors = FALSE
+)
+lpp <- lp[lp$visit_label > 1, ]
+session_df <- data.frame(
+  `PAP post-baseline sessions` = c("Total", "Used in the primary MMRM",
+                                   "Not used in the primary MMRM (continuous-time model only)"),
+  Sessions = sc(c(nrow(lpp), sum(lpp$mmrm_fl), sum(!lpp$mmrm_fl))),
   check.names = FALSE, stringsAsFactors = FALSE
 )
 
-# Report: visit timing in the PAP -------------------------------------------------
-lp <- long[long$pap_fl, ]
-timing_df <- do.call(rbind, lapply(2:5, function(k) {
-  x <- lp$years_since_bl[lp$avisit == k]
-  data.frame(Visit = k, n = sc(length(x)),
+# Report: timing of the sessions used, PAP ----------------------------------------
+timing_df <- do.call(rbind, lapply(2:3, function(k) {
+  x <- lp$years_since_bl[lp$mmrm_fl & lp$avisit == k]
+  data.frame(`Analysis visit` = k, n = sc(length(x)),
              `Median years from baseline (25th to 75th percentile)` = med_iqr(x),
              check.names = FALSE, stringsAsFactors = FALSE)
 }))
-
-# Report: skipped-visit timing check (SAP Section 5), pass/fail only --------------
-skip_ids  <- setdiff(d$id, d$id[d$visit == 2])
-q75_v2    <- quantile(d$delay[d$visit == 2], 0.75)
-next_days <- vapply(skip_ids, function(i) min(d$delay[d$id == i & d$visit > 1]), numeric(1))
-skip_pass <- length(skip_ids) == 0 || all(next_days > q75_v2)
 
 # Report: baseline characteristics of the PAP -------------------------------------
 base_df <- data.frame(
@@ -216,13 +236,12 @@ delta_lines <- c(
 
 # Report: supportive population ----------------------------------------------------
 ss <- subj[subj$supp_fl, ]
-supp_tab <- table(factor(ss$base_cdr_cat, c("0", "0.5", "1 or above")))
+cdr2 <- factor(ss$base_cdr_cat2, c("0", "0.5 or above"))
+supp_tab <- table(cdr2)
 supp_df <- data.frame(`Baseline CDR` = names(supp_tab),
                       Participants = sc(supp_tab),
-                      `With nWBV at visit 2` = sc(tapply(ss$has_v2, factor(ss$base_cdr_cat,
-                                                 c("0", "0.5", "1 or above")), sum)),
-                      `With nWBV at visit 3` = sc(tapply(ss$has_v3, factor(ss$base_cdr_cat,
-                                                 c("0", "0.5", "1 or above")), sum)),
+                      `With nWBV at analysis visit 2` = sc(tapply(ss$has_v2, cdr2, sum)),
+                      `With nWBV at analysis visit 3` = sc(tapply(ss$has_v3, cdr2, sum)),
                       check.names = FALSE, stringsAsFactors = FALSE)
 
 # Write report ----------------------------------------------------------------------
@@ -231,20 +250,18 @@ out <- c(
   "",
   paste0("- **Generated:** ", format(Sys.time(), "%Y-%m-%d %H:%M %Z"),
          " by `02_build_analysis_data.R`"),
+  "- **Visit scheme:** analysis visit 2 is 1 to under 3 years from baseline (target 2); analysis visit 3 is 3 to under 5 years (target 4); closest session to the target if more than one.",
   "- **Content:** aggregate only. Counts of 1 to 4 are shown as `<5`; summaries only for groups of 10 or more; no minima or maxima. No outcome (change score, progression) is summarised.",
   "- **Small-cell note:** a `<5` cell next to known totals can sometimes be recovered by subtraction. Merge categories before publishing any of these tables.",
   "",
   "## Participant flow", "", md_table(flow_df), "",
-  "## PAP: participants with nWBV at each visit", "", md_table(visit_df), "",
-  "## PAP: pattern across the two MMRM visits", "", md_table(pattern_df), "",
-  "## PAP: visit timing", "", md_table(timing_df), "",
-  "## Skipped-visit timing check (SAP Section 5)", "",
-  paste0("- Participants with no visit 2: ", sc(length(skip_ids))),
-  paste0("- Their next session is later than the 75th percentile of visit 2 timing for all of them: ",
-         if (skip_pass) "PASS" else "FAIL"), "",
+  "## PAP: participants with nWBV at each analysis visit", "", md_table(visit_df), "",
+  "## PAP: pattern across the two analysis visits", "", md_table(pattern_df), "",
+  "## PAP: sessions", "", md_table(session_df), "",
+  "## PAP: timing of the sessions used in the primary MMRM", "", md_table(timing_df), "",
   "## PAP: baseline characteristics", "", md_table(base_df), "",
   "## Delta grid check (D-007)", "", delta_lines, "",
-  "## Supportive population by baseline CDR", "", md_table(supp_df), "",
+  "## Supportive population by baseline CDR (two categories)", "", md_table(supp_df), "",
   "## Datasets written (local only, never committed)", "",
   paste0("- `derived/analysis_subj.rds`: ", nrow(subj), " rows, ", ncol(subj), " columns: ",
          paste(names(subj), collapse = ", ")),
