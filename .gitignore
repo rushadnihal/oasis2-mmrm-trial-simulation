@@ -1,0 +1,29 @@
+# Participant-level data must never be committed (see docs/data-use-statement.md)
+data/
+*.xlsx
+*.xls
+*.csv
+*.rds
+*.RData
+*.rda
+*.sas7bdat
+*.parquet
+*.feather
+
+# Internal working reports and logs (may contain small cells)
+reports/
+*_sessioninfo.txt
+*.log
+*.lst
+
+# R / RStudio / Quarto
+.Rhistory
+.Rproj.user/
+.Renviron
+.RData
+renv/library/
+*_cache/
+.quarto/
+
+# OS
+.DS_Store
