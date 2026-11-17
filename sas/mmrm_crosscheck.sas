@@ -59,8 +59,14 @@ data version;
 run;
 
 /* Export ----------------------------------------------------------------------*/
+/* ODS tables carry display formats (for example 4 decimals). Replace them
+   with BEST32. so the CSV files hold full precision for the comparison. */
 %macro export(ds, name);
-  proc export data=&ds outfile="&root/sas_&name..csv" dbms=csv replace;
+  data _x_&name;
+    set &ds;
+    format _numeric_ best32.;
+  run;
+  proc export data=_x_&name outfile="&root/sas_&name..csv" dbms=csv replace;
   run;
 %mend export;
 
