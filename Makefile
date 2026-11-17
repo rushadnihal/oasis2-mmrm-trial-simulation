@@ -22,6 +22,7 @@ synth-ci: synth-data
 	$(SYNTH_ENV) Rscript R/02_build_analysis_data.R
 	$(SYNTH_ENV) Rscript R/02b_visit_window_check.R
 	$(SYNTH_ENV) Rscript R/03_mmrm_primary.R
+	$(SYNTH_ENV) Rscript R/04_robustness.R
 
 data-check:
 	Rscript R/00_confirm_dataset.R
@@ -32,6 +33,7 @@ build:
 
 analysis:
 	Rscript R/03_mmrm_primary.R
+	Rscript R/04_robustness.R
 
 check-data:
 	bash scripts/check_no_participant_data.sh

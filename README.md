@@ -25,6 +25,8 @@ This repository applies trial-style longitudinal methods to OASIS-2, an observat
 | `R/02_build_analysis_data.R` | Builds the analysis datasets (local only) and reports population and visit counts |
 | `R/02b_visit_window_check.R` | Count-only comparison of the file's visit label with time windows, used to set the visit scheme |
 | `R/03_mmrm_primary.R` | Primary analysis (SAP 9.1): MMRM for change in nWBV at analysis visits 2 and 3 |
+| `R/04_robustness.R` | Robustness checks (SAP 9.2 to 9.5): covariance comparison, continuous-time model, label-based visits, supportive population |
+| `R/utils_mmrm.R` | Shared helpers: MMRM fit with the pre-specified fallback, least-squares means, tables |
 | `R/synthetic/make_synthetic_oasis2.R` | Generates a synthetic dataset from hand-chosen parameters, so the pipeline runs without the real data |
 | `Makefile`, `.github/workflows/ci.yml` | `make synth-ci` runs the pipeline on synthetic data; CI does the same on every push |
 | `scripts/check_no_participant_data.sh` | Fails if a participant identifier or a data file is tracked by git |
