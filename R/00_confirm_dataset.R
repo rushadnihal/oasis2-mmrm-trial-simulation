@@ -5,7 +5,8 @@
 #           spreadsheet expected by this project.
 #           Prints schema checks and aggregate counts only. No participant rows,
 #           IDs or per-person values are printed or written.
-# Inputs  : longitudinaldemo.xlsx in the data directory. The data directory is
+# Inputs  : the data file (OASIS2_DATA_FILE, default longitudinaldemo.xlsx)
+#           in the data directory. The data directory is
 #           the environment variable OASIS2_DATA_DIR if set, otherwise the
 #           current working directory.
 # Outputs : Console output (aggregate only)
@@ -16,13 +17,19 @@
 #           (small-cell rule, docs/data-use-statement.md).
 # ------------------------------------------------------------------------------
 
-library(readxl)
-
 data_dir  <- Sys.getenv("OASIS2_DATA_DIR", unset = getwd())
-data_file <- file.path(data_dir, "longitudinaldemo.xlsx")
+data_file <- file.path(data_dir, Sys.getenv("OASIS2_DATA_FILE",
+                                             unset = "longitudinaldemo.xlsx"))
 stopifnot("Data file not found in data directory" = file.exists(data_file))
 
-d <- as.data.frame(read_excel(data_file))
+read_raw <- function(path) {   # .xlsx (real data) or .csv (synthetic data)
+  if (grepl("\\.csv$", path, ignore.case = TRUE)) {
+    read.csv(path, check.names = FALSE, stringsAsFactors = FALSE)
+  } else {
+    as.data.frame(readxl::read_excel(path))
+  }
+}
+d <- read_raw(data_file)
 
 suppress_small <- function(tab, min_n = 5) {
   out <- as.character(tab)

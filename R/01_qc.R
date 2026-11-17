@@ -6,7 +6,8 @@
 #           the count-only tables needed to close D-001, D-002 and D-005
 #           (time axis, visit timing, numbers at each visit by population).
 #           No outcome analysis: no change scores, no outcome summaries.
-# Inputs  : longitudinaldemo.xlsx in the data directory. The data directory is
+# Inputs  : the data file (OASIS2_DATA_FILE, default longitudinaldemo.xlsx)
+#           in the data directory. The data directory is
 #           the environment variable OASIS2_DATA_DIR if set, otherwise the
 #           current working directory.
 # Outputs : 01_qc_report.md and 01_qc_sessioninfo.txt in the report directory.
@@ -19,15 +20,21 @@
 #           ~/.Renviron), then source("R/01_qc.R")
 # ------------------------------------------------------------------------------
 
-library(readxl)
-
 data_dir   <- Sys.getenv("OASIS2_DATA_DIR", unset = getwd())
 report_dir <- Sys.getenv("OASIS2_REPORT_DIR", unset = file.path(getwd(), "reports"))
-data_file  <- file.path(data_dir, "longitudinaldemo.xlsx")
+data_file  <- file.path(data_dir, Sys.getenv("OASIS2_DATA_FILE",
+                                             unset = "longitudinaldemo.xlsx"))
 stopifnot("Data file not found in data directory" = file.exists(data_file))
 dir.create(report_dir, recursive = TRUE, showWarnings = FALSE)
 
-raw <- as.data.frame(read_excel(data_file))
+read_raw <- function(path) {   # .xlsx (real data) or .csv (synthetic data)
+  if (grepl("\\.csv$", path, ignore.case = TRUE)) {
+    read.csv(path, check.names = FALSE, stringsAsFactors = FALSE)
+  } else {
+    as.data.frame(readxl::read_excel(path))
+  }
+}
+raw <- read_raw(data_file)
 
 d <- data.frame(
   id    = raw[["Subject ID"]],
@@ -235,7 +242,7 @@ out <- c(
   "# Report 01: Quality control",
   "",
   paste0("- **Generated:** ", format(Sys.time(), "%Y-%m-%d %H:%M %Z"), " by `01_qc.R`"),
-  "- **Input:** `longitudinaldemo.xlsx` (local data directory, never committed)",
+  paste0("- **Input:** `", basename(data_file), "` (local data directory, never committed)"),
   "- **Content:** aggregate only. Counts of 1 to 4 are shown as `<5`; summaries only for groups of 10 or more; no minima or maxima.",
   "- **Small-cell note:** a `<5` cell next to known row totals can sometimes be recovered by subtraction. Merge categories before publishing any of these tables.",
   "",

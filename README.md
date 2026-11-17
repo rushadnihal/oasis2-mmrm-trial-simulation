@@ -24,8 +24,19 @@ This repository applies trial-style longitudinal methods to OASIS-2, an observat
 | `R/01_qc.R` | Quality-control checks and count tables |
 | `R/02_build_analysis_data.R` | Builds the analysis datasets (local only) and reports population and visit counts |
 | `R/02b_visit_window_check.R` | Count-only comparison of the file's visit label with time windows, used to set the visit scheme |
+| `R/synthetic/make_synthetic_oasis2.R` | Generates a synthetic dataset from hand-chosen parameters, so the pipeline runs without the real data |
+| `Makefile`, `.github/workflows/ci.yml` | `make synth-ci` runs the pipeline on synthetic data; CI does the same on every push |
+| `scripts/check_no_participant_data.sh` | Fails if a participant identifier or a data file is tracked by git |
 
 Changes to the plan after the `sap-v1.0` tag are recorded as deviations, with the date, the reason, and whether they were made before or after seeing outcomes.
+
+## Running without the data
+
+```
+make synth-ci
+```
+
+generates a synthetic dataset and runs every script on it. The synthetic data are drawn from hand-chosen distributions, not from OASIS-2, so results computed on them say nothing about the real cohort.
 
 ## Data
 
