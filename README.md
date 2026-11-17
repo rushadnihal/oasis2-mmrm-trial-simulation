@@ -1,6 +1,6 @@
 # Natural-history MMRM and trial simulation in OASIS-2
 
-**Status: work in progress. The statistical analysis plan is in draft and no outcome has been analysed.**
+**Status: work in progress. The statistical analysis plan is frozen (tag `sap-v1.0`). No outcome had been analysed when it was frozen; results will be added as each analysis is run.**
 
 This repository applies trial-style longitudinal methods to OASIS-2, an observational MRI cohort of older adults. It has two parts:
 
@@ -18,12 +18,14 @@ This repository applies trial-style longitudinal methods to OASIS-2, an observat
 
 | Path | Content |
 |---|---|
-| `docs/SAP_v1.0_draft.md` | Draft statistical analysis plan, written from counts and visit timing only |
+| `docs/SAP_v1.0.md` | Statistical analysis plan, frozen at tag `sap-v1.0`; written from counts, visit timing and baseline quantities only |
 | `docs/data-use-statement.md` | Rules for handling the data and what may be published |
 | `R/00_confirm_dataset.R` | Confirms the local file has the expected schema and size |
-| `R/01_qc.R` | Quality-control checks and the count tables used to set the visit scheme |
+| `R/01_qc.R` | Quality-control checks and count tables |
+| `R/02_build_analysis_data.R` | Builds the analysis datasets (local only) and reports population and visit counts |
+| `R/02b_visit_window_check.R` | Count-only comparison of the file's visit label with time windows, used to set the visit scheme |
 
-The plan will be frozen as `docs/SAP_v1.0.md` and tagged `sap-v1.0` before any outcome analysis. Later changes are recorded as deviations.
+Changes to the plan after the `sap-v1.0` tag are recorded as deviations, with the date, the reason, and whether they were made before or after seeing outcomes.
 
 ## Data
 

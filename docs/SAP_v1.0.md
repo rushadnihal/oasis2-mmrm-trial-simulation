@@ -4,10 +4,10 @@
 
 | | |
 |---|---|
-| Version | 1.0 DRAFT (not frozen) |
-| Draft date | 2026-11-17 |
+| Version | 1.0 (frozen) |
+| Frozen | 2026-11-17, git tag `sap-v1.0` |
 | Owner | Rushad Nihal |
-| Status | Complete; awaiting owner approval. Becomes `docs/SAP_v1.0.md`, tagged `sap-v1.0`, on approval |
+| Status | Approved by the owner before any outcome analysis. Later changes are recorded as deviations (Section 16) |
 | Information used to write this plan | Schema, counts, visit timing and missingness only (internal QC reports 00, 01, 01a). No outcome values, change scores or model fits have been inspected |
 
 Every count in this plan comes from count-only scripts (`R/00` to `R/02b`) run before any outcome was examined.
