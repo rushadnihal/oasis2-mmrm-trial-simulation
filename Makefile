@@ -4,6 +4,7 @@
 #   data-check   run the dataset confirmation and QC on the real data
 #   build        build the analysis datasets from the real data
 #   analysis     Part A analyses on the real data
+#   sas-crosscheck  compare committed SAS output with R (synthetic data only)
 #   check-data   verify that no participant data are tracked by git
 #   clean        remove synthetic data and synthetic reports
 #
@@ -11,7 +12,7 @@
 
 SYNTH_ENV = OASIS2_DATA_DIR=synthetic_data OASIS2_DATA_FILE=synthetic_oasis2.csv OASIS2_REPORT_DIR=synthetic_reports
 
-.PHONY: synth-data synth-ci data-check build analysis check-data clean
+.PHONY: synth-data synth-ci data-check build analysis sas-crosscheck check-data clean
 
 synth-data:
 	Rscript R/synthetic/make_synthetic_oasis2.R
@@ -25,6 +26,8 @@ synth-ci: synth-data
 	$(SYNTH_ENV) Rscript R/04_robustness.R
 	$(SYNTH_ENV) Rscript R/05_secondary_and_contrast.R
 	$(SYNTH_ENV) Rscript R/06_missing_data.R
+	$(SYNTH_ENV) OASIS2_CROSSCHECK_DIR=synthetic_reports/crosscheck Rscript R/07a_export_crosscheck_input.R
+	Rscript R/07b_sas_crosscheck.R
 
 data-check:
 	Rscript R/00_confirm_dataset.R
@@ -38,6 +41,9 @@ analysis:
 	Rscript R/04_robustness.R
 	Rscript R/05_secondary_and_contrast.R
 	Rscript R/06_missing_data.R
+
+sas-crosscheck:
+	Rscript R/07b_sas_crosscheck.R
 
 check-data:
 	bash scripts/check_no_participant_data.sh

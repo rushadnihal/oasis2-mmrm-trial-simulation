@@ -3,6 +3,8 @@ data/
 *.xlsx
 *.xls
 *.csv
+!sas/crosscheck/*.csv
+!sas/crosscheck/sas_output/*.csv
 *.rds
 *.RData
 *.rda

@@ -20,3 +20,8 @@ jobs:
         run: make check-data
       - name: Run the pipeline on synthetic data
         run: make synth-ci
+      - name: Upload synthetic cross-check input
+        uses: actions/upload-artifact@v4
+        with:
+          name: crosscheck-input
+          path: synthetic_reports/crosscheck/mmrm_input.csv
