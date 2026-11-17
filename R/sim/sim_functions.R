@@ -114,11 +114,15 @@ analyse_mmrm <- function(d) {
              failed = FALSE, cov = cov_used)
 }
 
-# Reference-based multiple imputation (rbmi): jump to reference and copy
-# reference, from one set of approximate-Bayesian draws. ANCOVA at each visit
-# on the imputed data; Rubin's rules.
-analyse_rbmi <- function(d, n_samples) {
-  empty <- data.frame(method = c("MI J2R", "MI CR"), est = NA, se = NA, lci = NA, uci = NA,
+# Multiple imputation with rbmi, from one set of approximate-Bayesian draws:
+#   MI J2R        jump to reference
+#   MI CR         copy reference
+#   MI MAR delta  imputation under MAR, then imputed values in the active arm
+#                 shifted by `delta` before analysis (only if delta is given)
+# ANCOVA at each visit on the imputed data; Rubin's rules.
+analyse_rbmi <- function(d, n_samples, delta = NULL) {
+  methods <- c("MI J2R", "MI CR", if (!is.null(delta)) "MI MAR delta")
+  empty <- data.frame(method = methods, est = NA, se = NA, lci = NA, uci = NA,
                       failed = TRUE, cov = "us")
   dat <- d
   dat$group <- factor(ifelse(dat$arm == 1, "Active", "Control"), levels = c("Control", "Active"))
@@ -128,21 +132,30 @@ analyse_rbmi <- function(d, n_samples) {
   ice <- data.frame(id = factor(names(miss), levels = levels(dat$id)),
                     visit = factor(miss, levels = c("V2", "V3")),
                     strategy = "JR", stringsAsFactors = FALSE)
-  ice_cr <- ice; ice_cr$strategy <- "CR"
+  ice_cr  <- transform(ice, strategy = "CR")
+  ice_mar <- transform(ice, strategy = "MAR")
   vars <- rbmi::set_vars(subjid = "id", visit = "visit", outcome = "chg", group = "group",
                          covariates = c("base_c*visit", "group*visit"))
   vars_an <- rbmi::set_vars(subjid = "id", visit = "visit", outcome = "chg", group = "group",
                             covariates = "base_c")
+  refs <- c(Control = "Control", Active = "Control")
+  pooled <- function(imp, delta_df = NULL) {
+    an <- if (is.null(delta_df)) rbmi::analyse(imp, rbmi::ancova, vars = vars_an)
+          else rbmi::analyse(imp, rbmi::ancova, delta = delta_df, vars = vars_an)
+    po <- as.data.frame(rbmi::pool(an))
+    po[po$parameter == "trt_V3", ]
+  }
   out <- tryCatch({
     dr <- rbmi::draws(data = dat, data_ice = ice, vars = vars,
                       method = rbmi::method_approxbayes(n_samples = n_samples), quiet = TRUE)
-    refs <- c(Control = "Control", Active = "Control")
-    res <- lapply(list(`MI J2R` = NULL, `MI CR` = ice_cr), function(upd) {
-      imp <- if (is.null(upd)) rbmi::impute(dr, references = refs)
-             else rbmi::impute(dr, references = refs, update_strategy = upd)
-      po <- as.data.frame(rbmi::pool(rbmi::analyse(imp, rbmi::ancova, vars = vars_an)))
-      po[po$parameter == "trt_V3", ]
-    })
+    res <- list(`MI J2R` = pooled(rbmi::impute(dr, references = refs)),
+                `MI CR`  = pooled(rbmi::impute(dr, references = refs, update_strategy = ice_cr)))
+    if (!is.null(delta)) {
+      imp_mar <- rbmi::impute(dr, references = refs, update_strategy = ice_mar)
+      dt <- rbmi::delta_template(imp_mar)
+      dt$delta <- ifelse(dt$is_missing & dt$group == "Active", delta, 0)
+      res[["MI MAR delta"]] <- pooled(imp_mar, dt[, c("id", "visit", "delta")])
+    }
     data.frame(method = names(res),
                est = vapply(res, function(r) r$est, 0), se = vapply(res, function(r) r$se, 0),
                lci = vapply(res, function(r) r$lci, 0), uci = vapply(res, function(r) r$uci, 0),
@@ -150,6 +163,32 @@ analyse_rbmi <- function(d, n_samples) {
   }, error = function(e) empty)
   rownames(out) <- NULL
   out
+}
+
+# Full-run grid (SAP 11; MI reduction D-015) -----------------------------------------
+DROPOUT_SCENARIOS <- data.frame(
+  dropout = c("none", paste("MCAR", c("10%", "20%", "30%")), paste("MAR", c("10%", "20%", "30%")),
+              paste("MNAR", c("10%", "20%", "30%")), "MCAR 50%", "MAR 50%"),
+  mech = c("none", rep("MCAR", 3), rep("MAR", 3), rep("MNAR", 3), "MCAR", "MAR"),
+  p = c(0, rep(c(0.1, 0.2, 0.3), 3), 0.5, 0.5),
+  stringsAsFactors = FALSE)
+
+full_grid <- function() {
+  mm <- merge(expand.grid(n = c(30, 50, 80, 120, 200), theta = c(0, 0.1, 0.2, 0.3, 0.4)),
+              DROPOUT_SCENARIOS, by = NULL)
+  mm$part <- "mmrm"
+  mm$reps <- ifelse(mm$theta == 0, 5000, 2000)
+  mi <- merge(expand.grid(n = c(80, 200), theta = c(0, 0.2, 0.4)),
+              DROPOUT_SCENARIOS[DROPOUT_SCENARIOS$dropout %in% c("MAR 30%", "MNAR 30%", "MAR 50%"), ],
+              by = NULL)
+  mi$part <- "mi"
+  mi$reps <- 2000
+  g <- rbind(mm, mi)
+  g <- g[order(g$part != "mmrm", g$n, g$theta, g$dropout), ]   # MMRM first
+  g$key <- sprintf("%s_n%03d_t%02d_%s", g$part, g$n, round(100 * g$theta),
+                   gsub("[ %]", "", g$dropout))
+  rownames(g) <- NULL
+  g
 }
 
 # Performance measures with Monte Carlo SEs (Morris, White and Crowther 2019)

@@ -7,6 +7,8 @@
 #   sas-crosscheck  compare committed SAS output with R (synthetic data only)
 #   sim-pilot    simulation pilot (Part B); no data needed
 #   sim-smoke    tiny simulation run used by CI
+#   sim          full simulation (hours; resumable)
+#   sim-summary  performance tables from the full simulation
 #   check-data   verify that no participant data are tracked by git
 #   clean        remove synthetic data and synthetic reports
 #
@@ -14,7 +16,7 @@
 
 SYNTH_ENV = OASIS2_DATA_DIR=synthetic_data OASIS2_DATA_FILE=synthetic_oasis2.csv OASIS2_REPORT_DIR=synthetic_reports
 
-.PHONY: synth-data synth-ci data-check build analysis sas-crosscheck sim-pilot sim-smoke check-data clean
+.PHONY: synth-data synth-ci data-check build analysis sas-crosscheck sim-pilot sim-smoke sim sim-summary check-data clean
 
 synth-data:
 	Rscript R/synthetic/make_synthetic_oasis2.R
@@ -52,6 +54,14 @@ sim-pilot:
 
 sim-smoke:
 	SIM_REPS=4 SIM_NSAMPLES=3 SIM_CORES=2 OASIS2_REPORT_DIR=synthetic_reports Rscript R/08_simulation_pilot.R
+	SIM_REPS_SCALE=0.0005 SIM_NSAMPLES=3 SIM_CORES=2 OASIS2_SIM_DIR=synthetic_reports/sim Rscript R/09_simulation_full.R
+	OASIS2_SIM_DIR=synthetic_reports/sim Rscript R/10_simulation_summary.R
+
+sim:
+	caffeinate -i Rscript R/09_simulation_full.R
+
+sim-summary:
+	Rscript R/10_simulation_summary.R
 
 check-data:
 	bash scripts/check_no_participant_data.sh
