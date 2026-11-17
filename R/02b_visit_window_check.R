@@ -29,7 +29,10 @@ stopifnot("Run 02_build_analysis_data.R first" = file.exists(long_file))
 dir.create(report_dir, recursive = TRUE, showWarnings = FALSE)
 
 long <- readRDS(long_file)
-post <- long[long$avisit > 1, c("id", "avisit", "years_since_bl", "pap_fl")]
+# The comparison is on the file's Visit label (visit_label), not the window-based
+# analysis visit that 02_build_analysis_data.R now stores in avisit.
+post <- long[long$visit_label > 1, c("id", "visit_label", "years_since_bl", "pap_fl")]
+names(post)[names(post) == "visit_label"] <- "avisit"
 
 win_levels <- c("Under 1 year", "Window 2 (1 to under 3 years)",
                 "Window 3 (3 to under 5 years)", "5 years or later")
