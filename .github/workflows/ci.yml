@@ -15,7 +15,7 @@ jobs:
           r-version: release
           use-public-rspm: true
       - name: Install R packages
-        run: Rscript -e 'install.packages(c("mmrm", "emmeans"))'
+        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "mice"))'
       - name: No participant data in tracked files
         run: make check-data
       - name: Run the pipeline on synthetic data

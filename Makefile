@@ -24,6 +24,7 @@ synth-ci: synth-data
 	$(SYNTH_ENV) Rscript R/03_mmrm_primary.R
 	$(SYNTH_ENV) Rscript R/04_robustness.R
 	$(SYNTH_ENV) Rscript R/05_secondary_and_contrast.R
+	$(SYNTH_ENV) Rscript R/06_missing_data.R
 
 data-check:
 	Rscript R/00_confirm_dataset.R
@@ -36,6 +37,7 @@ analysis:
 	Rscript R/03_mmrm_primary.R
 	Rscript R/04_robustness.R
 	Rscript R/05_secondary_and_contrast.R
+	Rscript R/06_missing_data.R
 
 check-data:
 	bash scripts/check_no_participant_data.sh
