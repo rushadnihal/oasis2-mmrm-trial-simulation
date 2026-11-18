@@ -12,10 +12,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: r-lib/actions/setup-r@v2
         with:
-          r-version: release
+          r-version: "4.6.2"
           use-public-rspm: true
-      - name: Install R packages
-        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "nlme", "mice", "rbmi", "ggplot2", "readxl", "knitr", "rmarkdown", "renv"))'
+      - name: Install pinned R packages (renv.lock)
+        run: Rscript -e 'install.packages("renv"); renv::restore(lockfile = "renv.lock", library = .libPaths()[1], prompt = FALSE)'
       - uses: quarto-dev/quarto-actions/setup@v2
       - name: Render the report from committed results
         run: make report
@@ -33,11 +33,3 @@ jobs:
           echo "BEGIN_CROSSCHECK_SUMMARY"
           cat sas/crosscheck/crosscheck_summary.csv
           echo "END_CROSSCHECK_SUMMARY"
-      - name: Record package versions (renv.lock)
-        run: |
-          Rscript -e 'renv::snapshot(project = ".", lockfile = "renv.lock", packages = c("mmrm", "emmeans", "nlme", "mice", "rbmi", "ggplot2", "readxl", "knitr", "rmarkdown"), prompt = FALSE)'
-      - name: Print lockfile
-        run: |
-          echo BEGIN_LOCKFILE
-          cat renv.lock
-          echo END_LOCKFILE
