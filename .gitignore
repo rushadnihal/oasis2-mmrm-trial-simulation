@@ -33,6 +33,7 @@ renv/library/
 *_cache/
 .quarto/
 report/*_files/
+report/figures/
 
 # OS
 .DS_Store

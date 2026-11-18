@@ -23,6 +23,11 @@ library(knitr)
 res <- function(...) file.path("..", "results", ...)
 rd  <- function(...) read.csv(res(...), check.names = FALSE, stringsAsFactors = FALSE)
 tab <- function(x, ...) kable(x, format = "pipe", align = "l", ...)
+# Typst cannot read files outside report/, so copy the figures in (not committed)
+dir.create("figures", showWarnings = FALSE)
+invisible(file.copy(c(res("part_a", c("F1_mean_change.png", "F2_delta_adjustment.png")),
+                      res("simulation", c("F3_power.png", "F4_type1_error.png", "F5_methods.png"))),
+                    "figures", overwrite = TRUE))
 t1 <- rd("part_a", "T1.csv"); t2 <- rd("part_a", "T2.csv"); t3 <- rd("part_a", "T3.csv")
 t4 <- rd("part_a", "T4.csv"); t5 <- rd("part_a", "T5.csv"); t6 <- rd("part_a", "T6.csv")
 t7 <- rd("part_a", "T7.csv"); t8 <- rd("part_a", "T8.csv")
@@ -103,7 +108,7 @@ tab(t4)
 
 The model converged with the unstructured covariance and the fallback was not needed. Mean change is `r est(v2)` pp at about two years and `r est(v3)` pp at about four years (@tbl-primary, @fig-trajectory). Relative to the baseline mean in @tbl-baseline, the two-year change is about 1% of baseline nWBV.
 
-![Mean change in nWBV over time. Points: MMRM at the median time of each analysis window, with 95% CIs. Dashed line and band: continuous-time model mean slope with 95% CI.](../results/part_a/F1_mean_change.png){#fig-trajectory width=100%}
+![Mean change in nWBV over time. Points: MMRM at the median time of each analysis window, with 95% CIs. Dashed line and band: continuous-time model mean slope with 95% CI.](figures/F1_mean_change.png){#fig-trajectory width=100%}
 
 ## Robustness
 
@@ -135,7 +140,7 @@ tab(t7)
 
 Under MAR, multiple imputation and the likelihood-based MMRM agree. At two years the estimate moves by less than one standard error across the whole grid. At four years, where half the values are missing, it moves by more than one standard error from delta = -0.3 pp, but every 95% CI excludes zero (@tbl-delta, @fig-delta).
 
-![Delta adjustment: mean change and 95% CI as the assumed extra decline in missing values increases.](../results/part_a/F2_delta_adjustment.png){#fig-delta width=100%}
+![Delta adjustment: mean change and 95% CI as the assumed extra decline in missing values increases.](figures/F2_delta_adjustment.png){#fig-delta width=100%}
 
 ## Secondary endpoints
 
@@ -170,7 +175,7 @@ SAS and R fit the same model to the same answer. SAS `DDFM=KR` corresponds to th
 
 **Type I error.** With no dropout the MMRM's type I error was `r pct(min(t1e_none))` to `r pct(max(t1e_none))` across sample sizes, inside the Monte Carlo range for a true 5%, and `r pct(min(t1e_mar))` to `r pct(max(t1e_mar))` under MCAR and MAR. Under differential MNAR dropout of 30% it rose to `r pct(max(t1e_mnar$rejection))` at 200 per arm: the MMRM overstates the benefit by a roughly constant amount, which matters more as precision grows (@fig-type1).
 
-![Type I error of the MMRM by dropout mechanism, missing proportion and sample size.](../results/simulation/F4_type1_error.png){#fig-type1 width=100%}
+![Type I error of the MMRM by dropout mechanism, missing proportion and sample size.](figures/F4_type1_error.png){#fig-type1 width=100%}
 
 **Power and sample size.**
 
@@ -180,7 +185,7 @@ SAS and R fit the same model to the same answer. SAS `DDFM=KR` corresponds to th
 tab(t11)
 ```
 
-![Power of the MMRM by sample size, effect size and dropout. Under MNAR the higher rejection rate reflects bias, not power.](../results/simulation/F3_power.png){#fig-power width=100%}
+![Power of the MMRM by sample size, effect size and dropout. Under MNAR the higher rejection rate reflects bias, not power.](figures/F3_power.png){#fig-power width=100%}
 
 **Analysis methods compared.** Reference-based imputation is conservative under Rubin's rules: its model standard error exceeds its empirical standard error by about a third at 30% dropout, so its type I error is well below 5% and its power lower (@tbl-methods, @fig-methods). It estimates a smaller effect by design, because it answers a different question: what if participants who drop out lose the treatment benefit. The delta-adjusted analysis shifts the estimate by about delta times the proportion missing.
 
@@ -190,7 +195,7 @@ tab(t11)
 tab(t10)
 ```
 
-![Rejection rate by analysis method, 200 per arm.](../results/simulation/F5_methods.png){#fig-methods width=100%}
+![Rejection rate by analysis method, 200 per arm.](figures/F5_methods.png){#fig-methods width=100%}
 
 # Decisions and deviations
 
