@@ -19,7 +19,7 @@
 #           covariance parameters are reported.
 # Inputs  : sas/crosscheck/mmrm_input.csv (synthetic, committed)
 #           sas/crosscheck/sas_output/sas_*.csv (from SAS OnDemand, committed)
-# Outputs : sas/crosscheck/crosscheck_report.md
+# Outputs : sas/crosscheck/crosscheck_report.md, sas/crosscheck/crosscheck_summary.csv
 # Run     : from the repository root, Rscript R/07b_sas_crosscheck.R
 # ------------------------------------------------------------------------------
 
@@ -169,6 +169,16 @@ verdict <- function(c) paste0("LS means and contrasts: **", if (c$pass_est) "PAS
                               "); max |df difference| ", sprintf("%.2f", max(abs(c$est$d_df))),
                               "; max rel diff in covariance parameters ",
                               sprintf("%.1e", max(c$cov$rel)), ".")
+
+write.csv(data.frame(
+  variant = c("A: mmrm default Kenward-Roger", "B: Kenward-Roger-Linear"),
+  max_abs_diff_estimates = c(max(cmp$A$est$d_est), max(cmp$B$est$d_est)),
+  max_rel_diff_se = c(max(cmp$A$est$rel_se), max(cmp$B$est$rel_se)),
+  max_abs_diff_df = c(max(abs(cmp$A$est$d_df)), max(abs(cmp$B$est$d_df))),
+  max_rel_diff_covariance = c(max(cmp$A$cov$rel), max(cmp$B$cov$rel)),
+  pass_estimates = c(cmp$A$pass_est, cmp$B$pass_est),
+  pass_se = c(cmp$A$pass_se, cmp$B$pass_se)),
+  file.path(cc_dir, "crosscheck_summary.csv"), row.names = FALSE)
 
 conv <- paste0("SAS convergence status: model 1 ", paste(cs1$status, collapse = " "),
                ", model 2 ", paste(cs2$status, collapse = " "), " (0 = converged).")
