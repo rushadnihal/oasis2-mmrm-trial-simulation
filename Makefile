@@ -3,8 +3,7 @@
 #   synth-ci     run the pipeline on the synthetic dataset (no real data needed)
 #   data-check   run the dataset confirmation and QC on the real data
 #   build        build the analysis datasets from the real data
-#   analysis     Part A analyses and publication tables on the real data
-#   figures      figures from the aggregate results
+#   analysis     Part A analyses on the real data
 #   results      publication tables and figures (Part A real data; Part B)
 #   sas-crosscheck  compare committed SAS output with R (synthetic data only)
 #   sim-pilot    simulation pilot (Part B); no data needed
@@ -18,7 +17,7 @@
 
 SYNTH_ENV = OASIS2_DATA_DIR=synthetic_data OASIS2_DATA_FILE=synthetic_oasis2.csv OASIS2_REPORT_DIR=synthetic_reports
 
-.PHONY: synth-data synth-ci data-check build analysis figures results sas-crosscheck sim-pilot sim-smoke sim sim-summary check-data clean
+.PHONY: synth-data synth-ci data-check build analysis results sas-crosscheck sim-pilot sim-smoke sim sim-summary check-data clean
 
 synth-data:
 	Rscript R/synthetic/make_synthetic_oasis2.R
@@ -32,8 +31,6 @@ synth-ci: synth-data
 	$(SYNTH_ENV) Rscript R/04_robustness.R
 	$(SYNTH_ENV) Rscript R/05_secondary_and_contrast.R
 	$(SYNTH_ENV) Rscript R/06_missing_data.R
-	$(SYNTH_ENV) Rscript R/11_results_export.R
-	$(SYNTH_ENV) OASIS2_PARTA_DIR=synthetic_reports/partA_results OASIS2_FIG_DIR=synthetic_reports/figures Rscript R/12_figures.R
 	$(SYNTH_ENV) OASIS2_CROSSCHECK_DIR=synthetic_reports/crosscheck Rscript R/07a_export_crosscheck_input.R
 	Rscript R/07b_sas_crosscheck.R
 	$(SYNTH_ENV) OASIS2_RESULTS_DIR=synthetic_reports/publish/part_a Rscript R/11_results_part_a.R
@@ -51,10 +48,6 @@ analysis:
 	Rscript R/04_robustness.R
 	Rscript R/05_secondary_and_contrast.R
 	Rscript R/06_missing_data.R
-	Rscript R/11_results_export.R
-
-figures:
-	Rscript R/12_figures.R
 
 results:
 	Rscript R/11_results_part_a.R
