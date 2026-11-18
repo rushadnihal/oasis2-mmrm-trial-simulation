@@ -47,7 +47,7 @@ sec  <- read.csv(need[4], stringsAsFactors = FALSE)
 dlt  <- read.csv(need[5], stringsAsFactors = FALSE)
 
 # Small-cell guard: stop rather than publish a count below 5
-chk <- function(n) { if (any(n > 0 & n < 5)) stop("Small cell (<5) in a published table; merge first."); n }
+chk <- function(n) { if (any(n > 0 & n < 5)) stop("Small cell (<5) in a published table; merge first."); invisible(n) }
 f2 <- function(x) sprintf("%.2f", x)
 f3 <- function(x) sprintf("%.3f", x)
 ci <- function(e, l, u, d = 3) sprintf(paste0("%.", d, "f (%.", d, "f to %.", d, "f)"), e, l, u)
@@ -72,14 +72,17 @@ t1 <- data.frame(
   Participants = chk(c(n_all, n_cdr0, n_pap, n_all - n_cdr0)))
 note_t1 <- if (n_excl_pap == 0) "No participant with CDR 0 at the first visit was excluded from the primary analysis population." else
   "Participants with CDR 0 at the first visit but no session in either analysis window are excluded from the primary analysis population."
-note_t1 <- c(note_t1, "The supportive population is all participants with a session in an analysis window; fewer than 5 participants had none.")
+n_no_window <- n_all - nrow(supp)
+note_t1 <- c(note_t1, paste0("The supportive population is all participants with a session in an analysis window; ",
+  if (n_no_window == 0) "every participant had one." else if (n_no_window < 5)
+    "fewer than 5 participants had none (count withheld)." else paste(n_no_window, "participants had none.")))
 add_table("T1", "Participant flow", t1, note_t1)
 
 # T2 Baseline characteristics -----------------------------------------------------------
 desc <- function(x) {
   c(Participants = as.character(chk(nrow(x))),
     `Age, years, mean (SD)` = sprintf("%.1f (%.1f)", mean(x$age_bl), sd(x$age_bl)),
-    `Women, n (%)` = sprintf("%d (%.0f%%)", chk(sum(x$sex == "F")), 100 * mean(x$sex == "F")),
+    `Women, n (%)` = { chk(sum(x$sex == "M")); sprintf("%d (%.0f%%)", chk(sum(x$sex == "F")), 100 * mean(x$sex == "F")) },
     `Education, years, mean (SD)` = sprintf("%.1f (%.1f)", mean(x$educ), sd(x$educ)),
     `nWBV, percentage points, mean (SD)` = sprintf("%.2f (%.2f)", mean(x$base_nwbv), sd(x$base_nwbv)),
     `MMSE, median (IQR)` = sprintf("%.0f (%.0f to %.0f)", median(x$base_mmse, na.rm = TRUE),
