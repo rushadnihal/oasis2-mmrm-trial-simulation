@@ -15,7 +15,7 @@ jobs:
           r-version: release
           use-public-rspm: true
       - name: Install R packages
-        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "mice", "rbmi", "ggplot2", "knitr", "rmarkdown"))'
+        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "nlme", "mice", "rbmi", "ggplot2", "readxl", "knitr", "rmarkdown", "renv"))'
       - uses: quarto-dev/quarto-actions/setup@v2
       - name: Render the report from committed results
         run: make report
@@ -33,3 +33,10 @@ jobs:
           echo "BEGIN_CROSSCHECK_SUMMARY"
           cat sas/crosscheck/crosscheck_summary.csv
           echo "END_CROSSCHECK_SUMMARY"
+      - name: Record package versions (renv.lock)
+        run: |
+          Rscript -e 'renv::snapshot(project = ".", lockfile = "renv.lock", packages = c("mmrm", "emmeans", "nlme", "mice", "rbmi", "ggplot2", "readxl", "knitr", "rmarkdown"), prompt = FALSE)'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: renv-lock
+          path: renv.lock
