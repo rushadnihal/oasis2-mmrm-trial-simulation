@@ -1,6 +1,5 @@
 ---
 title: "Brain-volume decline in OASIS-2 and the trials it implies"
-subtitle: "A pre-specified MMRM analysis, a SAS/R cross-check and a simulation study of trial operating characteristics"
 author: "Rushad Nihal"
 date: today
 date-format: "D MMMM YYYY"
@@ -160,7 +159,7 @@ MMSE change is small and its CIs include zero. Over a third of the population sc
 The primary MMRM and the sex-contrast MMRM were fitted with R `mmrm` 0.3.19 and SAS `PROC MIXED` (SAS 9.4 M8, SAS OnDemand for Academics) on a synthetic dataset with the same structure (111 rows, 83 synthetic participants). Real OASIS-2 data were never uploaded to SAS OnDemand, a third-party service under the data terms.
 
 | Comparison with SAS (DDFM=KR) | R, mmrm default Kenward-Roger | R, Kenward-Roger-Linear |
-|---|---|---|
+|:---|:---|:---|
 | Max absolute difference, LS means and contrasts (tolerance 1e-4) | 2.7e-08, pass | 2.7e-08, pass |
 | Max relative difference, standard errors (tolerance 1e-3) | 3.0e-02, fail | 4.2e-07, pass |
 | Degrees of freedom | identical | identical |
@@ -180,7 +179,7 @@ SAS and R fit the same model to the same answer. SAS `DDFM=KR` corresponds to th
 
 ![Type I error of the MMRM by dropout mechanism, missing proportion and sample size.](figures/F4_type1_error.png){#fig-type1 width=100%}
 
-**Power and sample size.**
+**Power and sample size.** @tbl-ss gives the sample size per arm for 80% and 90% power, interpolated from @fig-power. Dropout of 30% at random raises it by about a third.
 
 ```{r}
 #| label: tbl-ss
@@ -194,8 +193,12 @@ tab(t11)
 
 ```{r}
 #| label: tbl-methods
-#| tbl-cap: "Analysis methods at 200 per arm. Bias is against the treatment-policy effect; reference-based MI targets a different estimand."
-tab(t10)
+#| tbl-cap: "Analysis methods at 200 per arm. MI J2R and MI CR: reference-based imputation (jump to reference, copy reference); MI MAR, delta: imputed active-arm values shifted by -0.3 pp. Bias is against the treatment-policy effect, which reference-based MI does not target. Rejection is type I error at theta = 0 and power otherwise."
+t10s <- t10
+t10s$Method <- c("MMRM (MAR)" = "MMRM", "MI, jump to reference" = "MI J2R", "MI, copy reference" = "MI CR",
+                 "MI, MAR with delta -0.3 (active arm)" = "MI MAR, delta")[t10s$Method]
+names(t10s) <- c("Theta", "Dropout", "Method", "Bias", "Emp. SE", "Model SE", "Cover. %", "Reject. %")
+tab(t10s)
 ```
 
 ![Rejection rate by analysis method, 200 per arm.](figures/F5_methods.png){#fig-methods width=100%}
@@ -203,7 +206,7 @@ tab(t10)
 # Decisions and deviations
 
 | Item | What and why | Before or after outcomes |
-|---|---|---|
+|:---|:---|:---|
 | Visit definition (D-002) | Time windows replaced the visit label after a count-only check showed the label does not track timing | Before the SAP was frozen |
 | Covariance hierarchy (D-006) | Reduced to unstructured then compound symmetry, a consequence of two post-baseline visits | Before the SAP was frozen |
 | SAS route (D-009) | Cross-check on synthetic data: no local SAS, and real data may not go to a third party | Before |
