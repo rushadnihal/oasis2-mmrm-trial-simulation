@@ -12,6 +12,9 @@ format:
       y: 2cm
     fontsize: 10pt
     section-numbering: "1."
+knitr:
+  opts_chunk:
+    dev: "pdf"   # no chunk draws a plot; pdf() needs no X11/cairo on macOS
 execute:
   echo: false
   warning: false
