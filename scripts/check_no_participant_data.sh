@@ -10,9 +10,9 @@ if git grep -n -I -E 'OAS2_[0-9]{4}' -- . ; then
 fi
 
 # Allow-list: synthetic SAS/R cross-check files (R/07a_export_crosscheck_input.R) and
-# aggregate simulation results (R/10_simulation_summary.R); neither holds real data
+# aggregate results tables (R/10, R/11, R/12); none holds participant-level data
 data_files=$(git ls-files | grep -i -E '\.(xlsx|xls|csv|rds|rdata|rda|sas7bdat|parquet|feather)$' \
-  | grep -v -E '^(sas/crosscheck/|results/simulation/[^/]+\.csv$)' || true)
+  | grep -v -E '^(sas/crosscheck/|results/(simulation|part_a)/[^/]+\.csv$)' || true)
 if [ -n "$data_files" ]; then
   echo "ERROR: data files are tracked:" >&2
   echo "$data_files" >&2

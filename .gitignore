@@ -6,6 +6,7 @@ data/
 !sas/crosscheck/*.csv
 !sas/crosscheck/sas_output/*.csv
 !results/simulation/*.csv
+!results/part_a/*.csv
 *.rds
 *.RData
 *.rda

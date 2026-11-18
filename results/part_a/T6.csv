@@ -1,0 +1,6 @@
+"Analysis","Visit 2 (95% CI)","Visit 3 (95% CI)"
+"Primary MMRM","-0.744 (-0.981 to -0.507)","-1.568 (-1.831 to -1.305)"
+"Compound symmetry covariance","-0.742 (-0.969 to -0.515)","-1.586 (-1.874 to -1.299)"
+"Continuous-time mixed model (at 1.90 and 3.97 years)","-0.769 (-0.894 to -0.644)","-1.606 (-1.868 to -1.345)"
+"Visit label instead of time windows","-0.843 (-1.068 to -0.617)","-1.407 (-1.713 to -1.100)"
+"All participants, CDR 0 stratum","-0.744 (-1.005 to -0.482)","-1.633 (-2.003 to -1.262)"
