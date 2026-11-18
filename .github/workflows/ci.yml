@@ -15,7 +15,7 @@ jobs:
           r-version: release
           use-public-rspm: true
       - name: Install R packages
-        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "mice", "rbmi"))'
+        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "mice", "rbmi", "ggplot2"))'
       - name: No participant data in tracked files
         run: make check-data
       - name: Run the pipeline on synthetic data
@@ -27,3 +27,6 @@ jobs:
           echo "BEGIN_CROSSCHECK_INPUT"
           cat synthetic_reports/crosscheck/mmrm_input.csv
           echo "END_CROSSCHECK_INPUT"
+          echo "BEGIN_CROSSCHECK_SUMMARY"
+          cat sas/crosscheck/crosscheck_summary.csv
+          echo "END_CROSSCHECK_SUMMARY"

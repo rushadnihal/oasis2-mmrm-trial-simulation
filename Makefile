@@ -4,6 +4,7 @@
 #   data-check   run the dataset confirmation and QC on the real data
 #   build        build the analysis datasets from the real data
 #   analysis     Part A analyses on the real data
+#   results      publication tables and figures (Part A real data; Part B)
 #   sas-crosscheck  compare committed SAS output with R (synthetic data only)
 #   sim-pilot    simulation pilot (Part B); no data needed
 #   sim-smoke    tiny simulation run used by CI
@@ -16,7 +17,7 @@
 
 SYNTH_ENV = OASIS2_DATA_DIR=synthetic_data OASIS2_DATA_FILE=synthetic_oasis2.csv OASIS2_REPORT_DIR=synthetic_reports
 
-.PHONY: synth-data synth-ci data-check build analysis sas-crosscheck sim-pilot sim-smoke sim sim-summary check-data clean
+.PHONY: synth-data synth-ci data-check build analysis results sas-crosscheck sim-pilot sim-smoke sim sim-summary check-data clean
 
 synth-data:
 	Rscript R/synthetic/make_synthetic_oasis2.R
@@ -32,6 +33,8 @@ synth-ci: synth-data
 	$(SYNTH_ENV) Rscript R/06_missing_data.R
 	$(SYNTH_ENV) OASIS2_CROSSCHECK_DIR=synthetic_reports/crosscheck Rscript R/07a_export_crosscheck_input.R
 	Rscript R/07b_sas_crosscheck.R
+	$(SYNTH_ENV) OASIS2_RESULTS_DIR=synthetic_reports/publish/part_a Rscript R/11_results_part_a.R
+	OASIS2_RESULTS_DIR=synthetic_reports/publish/simulation Rscript R/12_results_simulation.R
 
 data-check:
 	Rscript R/00_confirm_dataset.R
@@ -45,6 +48,10 @@ analysis:
 	Rscript R/04_robustness.R
 	Rscript R/05_secondary_and_contrast.R
 	Rscript R/06_missing_data.R
+
+results:
+	Rscript R/11_results_part_a.R
+	Rscript R/12_results_simulation.R
 
 sas-crosscheck:
 	Rscript R/07b_sas_crosscheck.R
