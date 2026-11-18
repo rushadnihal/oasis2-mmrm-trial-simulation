@@ -15,7 +15,10 @@ jobs:
           r-version: release
           use-public-rspm: true
       - name: Install R packages
-        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "mice", "rbmi", "ggplot2"))'
+        run: Rscript -e 'install.packages(c("mmrm", "emmeans", "mice", "rbmi", "ggplot2", "knitr", "rmarkdown"))'
+      - uses: quarto-dev/quarto-actions/setup@v2
+      - name: Render the report from committed results
+        run: make report
       - name: No participant data in tracked files
         run: make check-data
       - name: Run the pipeline on synthetic data

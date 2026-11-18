@@ -5,6 +5,7 @@
 #   build        build the analysis datasets from the real data
 #   analysis     Part A analyses on the real data
 #   results      publication tables and figures (Part A real data; Part B)
+#   report       render report/report.pdf from the committed results (Quarto)
 #   sas-crosscheck  compare committed SAS output with R (synthetic data only)
 #   sim-pilot    simulation pilot (Part B); no data needed
 #   sim-smoke    tiny simulation run used by CI
@@ -17,7 +18,7 @@
 
 SYNTH_ENV = OASIS2_DATA_DIR=synthetic_data OASIS2_DATA_FILE=synthetic_oasis2.csv OASIS2_REPORT_DIR=synthetic_reports
 
-.PHONY: synth-data synth-ci data-check build analysis results sas-crosscheck sim-pilot sim-smoke sim sim-summary check-data clean
+.PHONY: synth-data synth-ci data-check build analysis results report sas-crosscheck sim-pilot sim-smoke sim sim-summary check-data clean
 
 synth-data:
 	Rscript R/synthetic/make_synthetic_oasis2.R
@@ -52,6 +53,9 @@ analysis:
 results:
 	Rscript R/11_results_part_a.R
 	Rscript R/12_results_simulation.R
+
+report:
+	cd report && quarto render report.qmd
 
 sas-crosscheck:
 	Rscript R/07b_sas_crosscheck.R

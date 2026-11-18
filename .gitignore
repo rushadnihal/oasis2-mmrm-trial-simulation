@@ -32,6 +32,7 @@ synthetic_reports/
 renv/library/
 *_cache/
 .quarto/
+report/*_files/
 
 # OS
 .DS_Store

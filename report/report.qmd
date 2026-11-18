@@ -1,0 +1,229 @@
+---
+title: "Brain-volume decline in OASIS-2 and the trials it implies"
+subtitle: "A pre-specified MMRM analysis, a SAS/R cross-check and a simulation study of trial operating characteristics"
+author: "Rushad Nihal"
+date: today
+date-format: "D MMMM YYYY"
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2.2cm
+      y: 2cm
+    fontsize: 10pt
+    section-numbering: "1."
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+library(knitr)
+res <- function(...) file.path("..", "results", ...)
+rd  <- function(...) read.csv(res(...), check.names = FALSE, stringsAsFactors = FALSE)
+tab <- function(x, ...) kable(x, format = "pipe", align = "l", ...)
+t1 <- rd("part_a", "T1.csv"); t2 <- rd("part_a", "T2.csv"); t3 <- rd("part_a", "T3.csv")
+t4 <- rd("part_a", "T4.csv"); t5 <- rd("part_a", "T5.csv"); t6 <- rd("part_a", "T6.csv")
+t7 <- rd("part_a", "T7.csv"); t8 <- rd("part_a", "T8.csv")
+t10 <- rd("simulation", "T10.csv"); t11 <- rd("simulation", "T11.csv")
+perf <- rd("simulation", "performance.csv")
+mm <- perf[perf$method == "MMRM", ]
+
+est <- function(s) sub(" \\(.*", "", s)          # "-0.744 (-0.981 to -0.507)" -> "-0.744"
+cis <- function(s) sub(".*\\((.*)\\)", "\\1", s)  # -> "-0.981 to -0.507"
+pct <- function(x) sprintf("%.1f%%", 100 * x)
+v2 <- t4[1, "Mean change, pp (95% CI)"]; v3 <- t4[2, "Mean change, pp (95% CI)"]
+slope_row <- t6[grepl("^Continuous", t6$Analysis), ]
+t1e_none <- mm[mm$theta == 0 & mm$dropout == "none", "rejection"]
+t1e_mar  <- mm[mm$theta == 0 & grepl("^(MCAR|MAR)", mm$dropout), "rejection"]
+t1e_mnar <- mm[mm$theta == 0 & mm$dropout == "MNAR 30%", ]
+n_trials <- sum(perf$n_rep); n_failed <- sum(perf$n_failed)
+```
+
+# Summary
+
+This repository applies the workflow of a clinical-trial statistician to OASIS-2, an observational cohort of older adults with repeated MRI. It has two parts. Part A estimates the natural history of normalised whole-brain volume (nWBV) as one would analyse a trial's control arm, under a statistical analysis plan (SAP) frozen before any outcome was examined. Part B uses the fitted model to simulate two-arm trials with a hypothetical treatment and reports how candidate analyses perform.
+
+- In `r t1[2, 2]` participants who were cognitively normal at baseline (CDR 0), nWBV fell by **`r sub("^-", "", est(v2))` percentage points (pp) of intracranial volume at about two years** (95% CI `r cis(v2)`) and by `r sub("^-", "", est(v3))` pp at about four years (95% CI `r cis(v3)`).
+- The decline is close to linear and the primary result is robust to the covariance structure, the time model, the visit definition, the population model and plausible departures from missing at random.
+- MMSE barely changes in this group because of its ceiling, which supports nWBV as the primary endpoint.
+- R (`mmrm`) and SAS (`PROC MIXED`) agree to within 1e-6 on estimates and, with matched settings, on standard errors.
+- In `r format(n_trials, big.mark = ",")` simulated trials (no fitting failures), the MMRM held its type I error at 5% under ignorable dropout but not under differential missing-not-at-random dropout; a 30% slowing of decline needs about `r t11[3, "80% power"]` participants per arm for 80% power at about four years.
+
+# What this is and is not
+
+This is a methods demonstration on observational data. **No treatment effect is estimated anywhere.** The sex contrast fitted in Part A exists only to exercise the between-group code for the SAS/R cross-check and is an observational association. The project makes no clinical claims about Alzheimer's disease, does not combine OASIS-2 with other data and publishes aggregate results only.
+
+# Data and population
+
+OASIS-2 has 150 participants aged 60 or over with 373 MRI sessions, two to five per person. The primary analysis population is everyone with CDR 0 at the first visit (@tbl-flow). The dataset's `Group` label uses follow-up information and is not used to define the population.
+
+```{r}
+#| label: tbl-flow
+#| tbl-cap: "Participant flow."
+tab(t1)
+```
+
+```{r}
+#| label: tbl-baseline
+#| tbl-cap: "Baseline characteristics. The CDR 0.5 or above column is descriptive only."
+tab(t2)
+```
+
+**Visit definition.** Sessions are irregularly timed, and quality control showed that the file's visit number does not reliably track time: in the primary population, 17% of follow-up sessions fall in a different time window from the one their label suggests. Analysis visits are therefore defined by time since baseline (@tbl-visits), with the visit label kept as a sensitivity analysis. This choice was made from counts and timing only, before the SAP was frozen.
+
+```{r}
+#| label: tbl-visits
+#| tbl-cap: "Analysis visits in the primary population. With two sessions in a window, the one closest to 2 or 4 years is used."
+tab(t3)
+```
+
+# Methods
+
+The SAP (`docs/SAP_v1.0.md`, git tag `sap-v1.0`) was written from counts, visit timing and baseline quantities only, and frozen before any outcome analysis.
+
+**Estimand (ICH E9(R1)).** Population: adults with CDR 0 at baseline. Variable: change from baseline in nWBV (pp) at analysis visit 2. Intercurrent event, progression to CDR 0.5 or above: treatment-policy strategy (measurements used regardless). Dropout is handled as missing data. Summary measure: mean change.
+
+**Primary analysis.** Mixed model for repeated measures (MMRM) on change in nWBV at analysis visits 2 and 3, with visit, baseline nWBV and its interaction with visit, age and education (centred); unstructured covariance; REML; Kenward-Roger degrees of freedom (R `mmrm`). Pre-specified fallback: compound symmetry. The primary timepoint (visit 2) followed a rule fixed in advance: the latest visit observed in at least 60% of the population.
+
+**Sensitivity and secondary analyses.** Compound-symmetry covariance; a continuous-time mixed model with random intercept and slope using every session; the visit-label scheme; all participants with baseline CDR as a covariate; multiple imputation under MAR followed by delta adjustment; MMSE change by the same MMRM; CDR progression as proportions with Wilson intervals.
+
+**Simulation (Part B).** Planned in ADEMP form (Morris, White and Crowther, 2019) and described in Section 7.
+
+# Part A results
+
+## Primary analysis
+
+```{r}
+#| label: tbl-primary
+#| tbl-cap: "Primary analysis: MMRM, change from baseline in nWBV (pp). Last column: supplementary 95% CI with the linear Kenward-Roger adjustment, which reproduces SAS DDFM=KR (Section 6)."
+tab(t4)
+```
+
+The model converged with the unstructured covariance and the fallback was not needed. Mean change is `r est(v2)` pp at about two years and `r est(v3)` pp at about four years (@tbl-primary, @fig-trajectory). Relative to the baseline mean in @tbl-baseline, the two-year change is about 1% of baseline nWBV.
+
+![Mean change in nWBV over time. Points: MMRM at the median time of each analysis window, with 95% CIs. Dashed line and band: continuous-time model mean slope with 95% CI.](../results/part_a/F1_mean_change.png){#fig-trajectory width=100%}
+
+## Robustness
+
+```{r}
+#| label: tbl-cov
+#| tbl-cap: "Covariance structures (REML, identical fixed effects). This table replaces the SAP's covariance heatmap: with two post-baseline visits the matrix is 2 x 2."
+tab(t5)
+```
+
+Compound symmetry fits marginally better on AIC and BIC but gives nearly identical estimates (@tbl-robust); with two post-baseline visits there is little covariance structure to distinguish. The primary analysis stayed unstructured as pre-specified.
+
+```{r}
+#| label: tbl-robust
+#| tbl-cap: "Robustness of the primary result: change in nWBV (pp) with 95% CI."
+tab(t6)
+```
+
+Every sensitivity estimate lies inside the primary 95% CI at both visits. The continuous-time model's slope implies changes within 0.04 pp of the MMRM, so a constant rate of decline fits the data. The visit-label scheme gives more decline at visit 2 and less at visit 3, the pattern expected when the label places some later sessions in visit 2 and some earlier ones in visit 3.
+
+## Missing data
+
+Ten of 85 participants have no session in the two-year window and 43 none in the four-year window; the data cannot tell withdrawal from the end of a participant's follow-up. Those missing at four years were similar at baseline in nWBV and MMSE.
+
+```{r}
+#| label: tbl-delta
+#| tbl-cap: "Multiple imputation under MAR (delta = 0) and with every imputed value shifted by delta (pp)."
+tab(t7)
+```
+
+Under MAR, multiple imputation and the likelihood-based MMRM agree. At two years the estimate moves by less than one standard error across the whole grid. At four years, where half the values are missing, it moves by more than one standard error from delta = -0.3 pp, but every 95% CI excludes zero (@tbl-delta, @fig-delta).
+
+![Delta adjustment: mean change and 95% CI as the assumed extra decline in missing values increases.](../results/part_a/F2_delta_adjustment.png){#fig-delta width=100%}
+
+## Secondary endpoints
+
+```{r}
+#| label: tbl-secondary
+#| tbl-cap: "Secondary endpoints in the primary population (descriptive)."
+tab(t8)
+```
+
+MMSE change is small and its CIs include zero. Over a third of the population scores the maximum of 30 at baseline, and half of those seen at four years still do, so MMSE cannot register much change here. That is a property of the instrument in this group, not evidence of no cognitive change, and it supports nWBV as the primary endpoint. CDR proportions count only participants who returned and could be biased if progression affects return.
+
+# SAS/R cross-check
+
+The primary MMRM and the sex-contrast MMRM were fitted with R `mmrm` 0.3.19 and SAS `PROC MIXED` (SAS 9.4 M8, SAS OnDemand for Academics) on a synthetic dataset with the same structure (111 rows, 83 synthetic participants). Real OASIS-2 data were never uploaded to SAS OnDemand, a third-party service under the data terms.
+
+| Comparison with SAS (DDFM=KR) | R, mmrm default Kenward-Roger | R, Kenward-Roger-Linear |
+|---|---|---|
+| Max absolute difference, LS means and contrasts (tolerance 1e-4) | 2.7e-08, pass | 2.7e-08, pass |
+| Max relative difference, standard errors (tolerance 1e-3) | 3.0e-02, fail | 4.2e-07, pass |
+| Degrees of freedom | identical | identical |
+| Max relative difference, covariance parameters | 6.5e-07 | 6.5e-07 |
+
+: SAS/R agreement. Source: `sas/crosscheck/crosscheck_report.md`. {#tbl-xcheck}
+
+SAS and R fit the same model to the same answer. SAS `DDFM=KR` corresponds to the linear Kenward-Roger covariance adjustment in `mmrm`; the package default gives slightly smaller standard errors with an unstructured covariance. The primary analysis was kept as pre-specified, and the SAS-equivalent interval is reported alongside it (@tbl-primary); it differs from the primary interval by about 0.002 pp at each end.
+
+# Part B: simulated trials
+
+**Data-generating mechanism.** Two arms, two post-baseline visits at about two and four years. Control-arm mean change -0.75 and -1.55 pp, variances 1.10 and 0.82, covariance 0.49, baseline-nWBV effects -0.07 and -0.02: rounded from the primary MMRM. Treatment: proportional slowing theta of mean decline, so the true effect at four years is theta x 1.55 pp. No participant data are used.
+
+**Scenarios.** Participants per arm 30, 50, 80, 120, 200; theta 0 to 0.4; missing at the final visit 0 to 50% under MCAR, MAR (missingness depends on observed two-year change) or MNAR (depends on the unobserved four-year value, 1.5 times as frequent in the active arm). MMRM was run on all 300 scenarios (5000 replicates at theta = 0, 2000 otherwise). Reference-based multiple imputation (jump to reference, copy reference; `rbmi`) and MAR imputation with a -0.3 pp shift in the active arm were run on 18 scenarios at 2000 replicates, a reduction made for run time after a timed pilot and before any full-run results. There were `r n_failed` fitting failures in `r format(n_trials, big.mark = ",")` trials.
+
+**Type I error.** With no dropout the MMRM's type I error was `r pct(min(t1e_none))` to `r pct(max(t1e_none))` across sample sizes, inside the Monte Carlo range for a true 5%, and `r pct(min(t1e_mar))` to `r pct(max(t1e_mar))` under MCAR and MAR. Under differential MNAR dropout of 30% it rose to `r pct(max(t1e_mnar$rejection))` at 200 per arm: the MMRM overstates the benefit by a roughly constant amount, which matters more as precision grows (@fig-type1).
+
+![Type I error of the MMRM by dropout mechanism, missing proportion and sample size.](../results/simulation/F4_type1_error.png){#fig-type1 width=100%}
+
+**Power and sample size.**
+
+```{r}
+#| label: tbl-ss
+#| tbl-cap: "Participants per arm needed with the MMRM (two-sided 5%), interpolated between simulated sample sizes."
+tab(t11)
+```
+
+![Power of the MMRM by sample size, effect size and dropout. Under MNAR the higher rejection rate reflects bias, not power.](../results/simulation/F3_power.png){#fig-power width=100%}
+
+**Analysis methods compared.** Reference-based imputation is conservative under Rubin's rules: its model standard error exceeds its empirical standard error by about a third at 30% dropout, so its type I error is well below 5% and its power lower (@tbl-methods, @fig-methods). It estimates a smaller effect by design, because it answers a different question: what if participants who drop out lose the treatment benefit. The delta-adjusted analysis shifts the estimate by about delta times the proportion missing.
+
+```{r}
+#| label: tbl-methods
+#| tbl-cap: "Analysis methods at 200 per arm. Bias is against the treatment-policy effect; reference-based MI targets a different estimand."
+tab(t10)
+```
+
+![Rejection rate by analysis method, 200 per arm.](../results/simulation/F5_methods.png){#fig-methods width=100%}
+
+# Decisions and deviations
+
+| Item | What and why | Before or after outcomes |
+|---|---|---|
+| Visit definition (D-002) | Time windows replaced the visit label after a count-only check showed the label does not track timing | Before the SAP was frozen |
+| Covariance hierarchy (D-006) | Reduced to unstructured then compound symmetry, a consequence of two post-baseline visits | Before the SAP was frozen |
+| SAS route (D-009) | Cross-check on synthetic data: no local SAS, and real data may not go to a third party | Before |
+| Kenward-Roger variant (D-014) | Primary kept as run; SAS-equivalent interval added as supplementary | After Part A, not a deviation |
+| Simulation grid (D-015) | Reference-based MI on 18 of 300 scenarios, for run time | After the pilot, before full-run results |
+| Covariance heatmap | Replaced by @tbl-cov | Presentation only |
+
+# Limitations
+
+- Observational data with no treatment; the simulated treatment effect is hypothetical.
+- 85 participants in the primary population, 75 at two years and 42 at four years.
+- Two post-baseline visits, so little covariance structure to study.
+- Missing four-year data cannot be separated into withdrawal and end of follow-up.
+- Few participants progress on CDR, so progression questions are underpowered.
+- One volunteer cohort, one scanner era, no external validation.
+- The simulation depends on the fitted model (including a four-year estimate from 42 people) and on assumed dropout mechanisms and strengths.
+- The SAS/R cross-check uses synthetic data.
+
+# Reproducibility and data terms
+
+Every number in this report is read from files in `results/`, rebuilt by the scripts in `R/`; `make synth-ci` runs the whole pipeline on synthetic data, and CI does so on every commit. OASIS-2 data are not included and were analysed only on the author's computer. Published counts are 5 or more; no participant-level values or plots are shown.
+
+**Acknowledgement.** Data were provided [in part] by OASIS-2: Longitudinal: Principal Investigators: D. Marcus, R, Buckner, J. Csernansky, J. Morris; P50 AG05681, P01 AG03991, P01 AG026276, R01 AG021910, P20 MH071616, U24 RR021382
+
+# References
+
+- Marcus DS, Fotenos AF, Csernansky JG, Morris JC, Buckner RL. Open Access Series of Imaging Studies: longitudinal MRI data in nondemented and demented older adults. *J Cogn Neurosci* 2010;22:2677-2684. https://doi.org/10.1162/jocn.2009.21407
+- ICH E9(R1) addendum on estimands and sensitivity analysis in clinical trials. 2019.
+- Kenward MG, Roger JH. Small sample inference for fixed effects from restricted maximum likelihood. *Biometrics* 1997;53:983-997.
+- Carpenter JR, Roger JH, Kenward MG. Analysis of longitudinal trials with protocol deviation: a framework for relevant, accessible assumptions, and inference via multiple imputation. *J Biopharm Stat* 2013;23:1352-1371.
+- Morris TP, White IR, Crowther MJ. Using simulation studies to evaluate statistical methods. *Stat Med* 2019;38:2074-2102.
