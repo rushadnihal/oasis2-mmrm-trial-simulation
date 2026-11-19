@@ -26,9 +26,15 @@ Honest limits: 85 participants in the primary population and two post-baseline v
 
 ![Mean change in nWBV over time](results/part_a/F1_mean_change.png)
 
+## Why this setting, and how a real trial would differ
+
+- **Endpoint.** nWBV was chosen because it is the only longitudinal imaging measure in the public OASIS-2 file, it has no missing values, and MMSE barely moves in this group (ceiling effect). Real trials measure atrophy by registering serial scans (for example the boundary shift integral), which is more precise than differencing segmentation-based volumes, so the sample sizes here are likely pessimistic for an imaging endpoint.
+- **Population.** CDR 0 at baseline mimics the control arm of a prevention trial. Most disease-modifying Alzheimer's trials enrol MCI or mild dementia, often amyloid-positive, and use a clinical primary endpoint such as CDR-SB, with imaging as a secondary endpoint.
+- **Effect size.** The simulation covers 10% to 40% slowing of decline; 30% is quoted above as one point on that grid, not as an expected drug effect. A real sample-size calculation would anchor the effect size on prior trials. Anti-amyloid antibody trials have reported faster, not slower, whole-brain volume loss in treated arms, which is one reason brain volume is not used as a primary efficacy endpoint.
+
 ## Design principles
 
-- **Plan before outcomes.** [`docs/SAP_v1.0.md`](docs/SAP_v1.0.md), tagged `sap-v1.0`, was written from counts, visit timing and baseline quantities only. Every decision and deviation is listed in the report with whether it came before or after outcomes were seen.
+- **Plan before outcomes.** [`docs/SAP_v1.0.md`](docs/SAP_v1.0.md) was frozen under the git tag `sap-v1.0` before any outcome script existed. You can check this in the history: up to the tag, the only scripts are `R/00` to `R/02b`, which report only the schema, counts, visit timing, missingness and baseline values. `R/02` derives change scores for the analysis dataset but never prints, tabulates or models them. The first outcome analysis (`R/03`) was committed after the tag, and every later change to the plan is listed in the report as a deviation, marked as before or after outcomes were seen. The plan was written by one person, not by an independent team, so this is a self-imposed firewall rather than real blinding.
 - **Count-only checks drove the design.** Quality control showed that the file's visit label does not track session timing, so analysis visits are defined by time windows; the label scheme is kept as a sensitivity analysis.
 - **Two implementations.** The primary model is fitted in R (`mmrm`) and SAS (`PROC MIXED`) and compared against pre-specified tolerances.
 - **Simulation reported properly.** ADEMP structure, Monte Carlo standard errors, reproducible random-number streams, and fitting failures counted rather than dropped.
