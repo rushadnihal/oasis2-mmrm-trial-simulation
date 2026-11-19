@@ -78,7 +78,13 @@ make report        # render the report from the committed results (needs Quarto)
 
 With the data: obtain OASIS-2 from [oasis-brains.org](https://www.oasis-brains.org) under your own data use agreement, set `OASIS2_DATA_DIR` (and optionally `OASIS2_REPORT_DIR`) in `.Renviron`, then `make data-check build analysis results`. The simulation (`make sim`) needs no data and takes about 8 hours on 7 cores.
 
-R 4.5 with `mmrm`, `emmeans`, `nlme`, `mice`, `rbmi`, `ggplot2`, `readxl`, `knitr`, `rmarkdown`; Quarto 1.4 or later for the report.
+Package versions are pinned in [`renv.lock`](renv.lock) (R 4.6.2 with `mmrm`, `emmeans`, `nlme`, `mice`, `rbmi`, `ggplot2`, `readxl`, `knitr`, `rmarkdown` and their dependencies). CI installs exactly these versions and runs the whole pipeline on synthetic data with them. To use them locally:
+
+```
+Rscript -e 'install.packages("renv"); renv::activate(); renv::restore(prompt = FALSE)'
+```
+
+The committed results were produced earlier with R 4.5; each script writes a `sessionInfo()` file next to its report. Quarto 1.4 or later is needed for the report.
 
 ## Data and licence
 
