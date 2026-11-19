@@ -10,4 +10,6 @@ This project uses OASIS-2 under the OASIS data use agreement. The rules below ap
 6. **One dataset.** OASIS-2 is not combined or linked with any other dataset, and no attempt is made to identify participants.
 7. **Acknowledgement.** The OASIS acknowledgement in `DATA_ACKNOWLEDGEMENT.md` accompanies every public presentation of results.
 
+**Confirmation from OASIS.** On 18 November 2026 the OASIS project team confirmed in writing that publishing this repository's model outputs and aggregate results is permitted, that raw data may not be published, and that OASIS data may not be hosted or processed on cloud-based servers. All analysis of OASIS-2 data was done on the owner's computer; continuous integration and the SAS OnDemand cross-check use synthetic data only.
+
 To reproduce the analyses, obtain OASIS-2 from https://www.oasis-brains.org under your own agreement and set `OASIS2_DATA_DIR` to its location.
